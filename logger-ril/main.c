@@ -118,7 +118,7 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
     
     char **wrappedArgs = malloc(argc - optind + 1);
     wrappedArgs[0] = ril_path;
-    memcpy(wrappedArgs, argv + optind, argc - optind);
+    memcpy(wrappedArgs + 1, argv + optind, (argc - optind) * sizeof(char *));
     
     RIL_Init_t wrappedRILInit = (RIL_Init_t) dlsym(original, "RIL_Init");
     if(wrappedRILInit == NULL) {
@@ -128,13 +128,9 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
         
         return NULL;  
     }
-    
-    __android_log_print(ANDROID_LOG_DEBUG, "RIL", "logger-ril: calling original entry point: env = %p, argc = %d, argv = %p", env, argc - optind + 1, wrappedArgs);
-    
+     
     wrappedRIL = wrappedRILInit(wrappedAndroid, argc - optind + 1, wrappedArgs);
     // it's not safe to deallocate argv now.
-    
-    __android_log_print(ANDROID_LOG_DEBUG, "RIL", "logger-ril: original entry point returned, table = %p\n", wrappedRIL);
     
     if(wrappedRIL == NULL)
         return NULL;
@@ -142,6 +138,8 @@ const RIL_RadioFunctions *RIL_Init(const struct RIL_Env *env, int argc, char **a
     init_log_entry_t *entry = malloc(sizeof(init_log_entry_t));
     log_event(EVENT_INIT, entry, sizeof(init_log_entry_t));
     free(entry);
+    
+    __android_log_print(ANDROID_LOG_INFO, "RIL", "logger-ril: operational; writing to %s", log_file);
     
     return &RIL_wrappers;
 }
